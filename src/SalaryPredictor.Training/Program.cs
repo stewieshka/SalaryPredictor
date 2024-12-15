@@ -1,2 +1,53 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+﻿using Microsoft.ML;
+using SalaryPredictor.Training.Models;
+
+var mlContext = new MLContext();
+
+// Load data
+const string dataPath = "ds_salaries.csv";
+var data = mlContext.Data.LoadFromTextFile<SalaryData>(dataPath, hasHeader: true, separatorChar: ',');
+
+// Split data into training and testing sets
+var split = mlContext.Data.TrainTestSplit(data, testFraction: 0.2);
+var trainData = split.TrainSet;
+var testData = split.TestSet;
+
+// Define the data preparation pipeline
+var pipeline = mlContext.Transforms.Categorical.OneHotEncoding("ExperienceLevelEncoded", "ExperienceLevel")
+    .Append(mlContext.Transforms.Categorical.OneHotEncoding("EmploymentTypeEncoded", "EmploymentType"))
+    .Append(mlContext.Transforms.Categorical.OneHotEncoding("JobTitleEncoded", "JobTitle"))
+    .Append(mlContext.Transforms.Categorical.OneHotEncoding("EmployeeResidenceEncoded", "EmployeeResidence"))
+    .Append(mlContext.Transforms.Categorical.OneHotEncoding("CompanyLocationEncoded", "CompanyLocation"))
+    .Append(mlContext.Transforms.Categorical.OneHotEncoding("CompanySizeEncoded", "CompanySize"))
+    .Append(mlContext.Transforms.NormalizeMinMax("WorkYearNormalized", "WorkYear"))
+    .Append(mlContext.Transforms.NormalizeMinMax("RemoteRatioNormalized", "RemoteRatio"))
+    .Append(mlContext.Transforms.Concatenate("Features",
+        "ExperienceLevelEncoded",
+        "EmploymentTypeEncoded",
+        "JobTitleEncoded",
+        "EmployeeResidenceEncoded",
+        "CompanyLocationEncoded",
+        "CompanySizeEncoded",
+        "WorkYearNormalized",
+        "RemoteRatioNormalized"))
+    .Append(mlContext.Regression.Trainers.FastTree(
+        labelColumnName: "SalaryInUSD",
+        featureColumnName: "Features",
+        numberOfLeaves: 50,
+        minimumExampleCountPerLeaf: 5,
+        learningRate: 0.2));
+
+// Train the model
+var model = pipeline.Fit(trainData);
+
+// Evaluate the model
+var predictions = model.Transform(testData);
+var metrics = mlContext.Regression.Evaluate(predictions, labelColumnName: "SalaryInUSD");
+
+Console.WriteLine($"R^2: {metrics.RSquared:0.##}");
+Console.WriteLine($"RMSE: {metrics.RootMeanSquaredError:0.##}");
+
+// Save the model
+const string modelPath = "SalaryPredictionModel.zip";
+mlContext.Model.Save(model, trainData.Schema, modelPath);
+Console.WriteLine($"Model saved to: {modelPath}");
