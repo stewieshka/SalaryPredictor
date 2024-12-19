@@ -12,7 +12,7 @@ public static class Predictor
 
     static Predictor()
     {
-        var model = MlContext.Model.Load(ModelPath, out var modelInputSchema);
+        var model = MlContext.Model.Load(ModelPath, out _);
         PredictionEngine = MlContext.Model.CreatePredictionEngine<SalaryData, SalaryPrediction>(model);
     }
 

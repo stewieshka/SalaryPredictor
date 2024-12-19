@@ -1,18 +1,15 @@
 ﻿using Microsoft.ML;
-using SalaryPredictor.Training.Models;
+using SalaryPredictor.Shared.Models;
 
 var mlContext = new MLContext();
 
-// Load data
 const string dataPath = "ds_salaries.csv";
 var data = mlContext.Data.LoadFromTextFile<SalaryData>(dataPath, hasHeader: true, separatorChar: ',');
 
-// Split data into training and testing sets
 var split = mlContext.Data.TrainTestSplit(data, testFraction: 0.2);
 var trainData = split.TrainSet;
 var testData = split.TestSet;
 
-// Define the data preparation pipeline
 var pipeline = mlContext.Transforms.Categorical.OneHotEncoding("ExperienceLevelEncoded", "ExperienceLevel")
     .Append(mlContext.Transforms.Categorical.OneHotEncoding("EmploymentTypeEncoded", "EmploymentType"))
     .Append(mlContext.Transforms.Categorical.OneHotEncoding("JobTitleEncoded", "JobTitle"))
@@ -37,17 +34,14 @@ var pipeline = mlContext.Transforms.Categorical.OneHotEncoding("ExperienceLevelE
         minimumExampleCountPerLeaf: 5,
         learningRate: 0.2));
 
-// Train the model
 var model = pipeline.Fit(trainData);
 
-// Evaluate the model
 var predictions = model.Transform(testData);
 var metrics = mlContext.Regression.Evaluate(predictions, labelColumnName: "SalaryInUSD");
 
 Console.WriteLine($"R^2: {metrics.RSquared:0.##}");
 Console.WriteLine($"RMSE: {metrics.RootMeanSquaredError:0.##}");
 
-// Save the model
 const string modelPath = "SalaryPredictionModel.zip";
 mlContext.Model.Save(model, trainData.Schema, modelPath);
 Console.WriteLine($"Model saved to: {modelPath}");
