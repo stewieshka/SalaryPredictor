@@ -1,6 +1,6 @@
 using Microsoft.ML.Data;
 
-namespace SalaryPredictor.Training.Models;
+namespace SalaryPredictor.Shared.Models;
 
 public class SalaryData
 {

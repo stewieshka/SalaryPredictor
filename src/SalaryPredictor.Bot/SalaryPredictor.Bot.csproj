@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="LG.Microsoft.ML.FastTree" Version="1.6.0.4" />
     <PackageReference Include="Microsoft.ML" Version="4.0.0" />
-    <PackageReference Include="Microsoft.ML.FastTree" Version="4.0.0" />
   </ItemGroup>
 
   <ItemGroup>
